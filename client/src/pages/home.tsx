@@ -35,7 +35,7 @@ export default function Home() {
   // Initialize WebSocket connection
   useEffect(() => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}`;
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
     
     let ws: WebSocket;
     let reconnectTimeout: NodeJS.Timeout;
@@ -67,19 +67,20 @@ export default function Home() {
             setAgentStatus(progressData.agentStatus);
             
             if (progressData.currentMessage) {
+              const currentMsg = progressData.currentMessage;
               // Add new message if it's different from the last one
               setMessages(prev => {
                 const lastMessage = prev[prev.length - 1];
                 if (!lastMessage || 
-                    lastMessage.agent !== progressData.currentMessage?.agent ||
-                    lastMessage.message !== progressData.currentMessage?.message) {
+                    lastMessage.agent !== currentMsg.agent ||
+                    lastMessage.message !== currentMsg.message) {
                   return [...prev, {
                     id: Date.now(),
                     taskId: progressData.taskId,
-                    agent: progressData.currentMessage.agent,
-                    message: progressData.currentMessage.message,
-                    messageType: progressData.currentMessage.messageType,
-                    timestamp: new Date(progressData.currentMessage.timestamp),
+                    agent: currentMsg.agent,
+                    message: currentMsg.message,
+                    messageType: currentMsg.messageType,
+                    timestamp: new Date(currentMsg.timestamp),
                     metadata: null
                   }];
                 }

@@ -8,7 +8,10 @@ import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
-  const wss = new WebSocketServer({ server: httpServer });
+  const wss = new WebSocketServer({ 
+    server: httpServer,
+    path: '/ws'
+  });
 
   // WebSocket connections for real-time updates
   const clients = new Map<string, any>();
