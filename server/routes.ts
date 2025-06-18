@@ -17,19 +17,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const clientId = Math.random().toString(36).substring(7);
     clients.set(clientId, ws);
 
+    ws.on('error', (error) => {
+      console.log('WebSocket client error:', error);
+      clients.delete(clientId);
+    });
+
     ws.on('close', () => {
       clients.delete(clientId);
     });
 
-    ws.send(JSON.stringify({ type: 'connected', clientId }));
+    try {
+      ws.send(JSON.stringify({ type: 'connected', clientId }));
+    } catch (error) {
+      console.log('Error sending connection message:', error);
+    }
   });
 
   // Broadcast to all connected clients
   const broadcast = (data: any) => {
     const message = JSON.stringify(data);
-    clients.forEach((ws) => {
-      if (ws.readyState === 1) { // WebSocket.OPEN
-        ws.send(message);
+    clients.forEach((ws, clientId) => {
+      try {
+        if (ws.readyState === 1) { // WebSocket.OPEN
+          ws.send(message);
+        } else {
+          clients.delete(clientId);
+        }
+      } catch (error) {
+        console.log('Error broadcasting to client:', error);
+        clients.delete(clientId);
       }
     });
   };

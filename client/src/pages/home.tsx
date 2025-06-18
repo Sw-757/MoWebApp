@@ -37,51 +37,80 @@ export default function Home() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}`;
     
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
-
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+    let ws: WebSocket;
+    let reconnectTimeout: NodeJS.Timeout;
+    
+    const connect = () => {
+      ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
       
-      if (data.type === 'taskProgress') {
-        const progressData: TaskProgress = data.data;
-        setProgress(progressData.progress);
-        setAgentStatus(progressData.agentStatus);
-        
-        if (progressData.currentMessage) {
-          // Add new message if it's different from the last one
-          setMessages(prev => {
-            const lastMessage = prev[prev.length - 1];
-            if (!lastMessage || 
-                lastMessage.agent !== progressData.currentMessage?.agent ||
-                lastMessage.message !== progressData.currentMessage?.message) {
-              return [...prev, {
-                id: Date.now(),
-                taskId: progressData.taskId,
-                agent: progressData.currentMessage.agent,
-                message: progressData.currentMessage.message,
-                messageType: progressData.currentMessage.messageType,
-                timestamp: new Date(progressData.currentMessage.timestamp),
-                metadata: null
-              }];
+      ws.onopen = () => {
+        console.log('WebSocket connected');
+      };
+      
+      ws.onerror = (error) => {
+        console.log('WebSocket error:', error);
+      };
+      
+      ws.onclose = () => {
+        console.log('WebSocket disconnected, attempting to reconnect...');
+        reconnectTimeout = setTimeout(connect, 3000);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          
+          if (data.type === 'taskProgress') {
+            const progressData: TaskProgress = data.data;
+            setProgress(progressData.progress);
+            setAgentStatus(progressData.agentStatus);
+            
+            if (progressData.currentMessage) {
+              // Add new message if it's different from the last one
+              setMessages(prev => {
+                const lastMessage = prev[prev.length - 1];
+                if (!lastMessage || 
+                    lastMessage.agent !== progressData.currentMessage?.agent ||
+                    lastMessage.message !== progressData.currentMessage?.message) {
+                  return [...prev, {
+                    id: Date.now(),
+                    taskId: progressData.taskId,
+                    agent: progressData.currentMessage.agent,
+                    message: progressData.currentMessage.message,
+                    messageType: progressData.currentMessage.messageType,
+                    timestamp: new Date(progressData.currentMessage.timestamp),
+                    metadata: null
+                  }];
+                }
+                return prev;
+              });
             }
-            return prev;
-          });
+          } else if (data.type === 'taskCompleted') {
+            setIsProcessing(false);
+            setTaskCompleted(true);
+            setProgress(100);
+            const progressData: TaskProgress = data.data;
+            setAgentStatus(progressData.agentStatus);
+          } else if (data.type === 'taskError') {
+            setIsProcessing(false);
+            console.error('Task error:', data.data);
+          }
+        } catch (error) {
+          console.log('WebSocket message parsing error:', error);
         }
-      } else if (data.type === 'taskCompleted') {
-        setIsProcessing(false);
-        setTaskCompleted(true);
-        setProgress(100);
-        const progressData: TaskProgress = data.data;
-        setAgentStatus(progressData.agentStatus);
-      } else if (data.type === 'taskError') {
-        setIsProcessing(false);
-        console.error('Task error:', data.data);
-      }
+      };
     };
+    
+    connect();
 
     return () => {
-      ws.close();
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      if (ws) {
+        ws.close();
+      }
     };
   }, []);
 
