@@ -12,13 +12,13 @@ import { Bot, Phone, CreditCard, Crown, Play, MessageCircle } from "lucide-react
 import type { Task, Message, TaskProgress, AgentStatus } from "@shared/schema";
 
 const samplePrompts = [
-  "Transfer $25 to Sarah and call to coordinate weekend trip",
-  "Pay electric bill via Venmo and phone utility company to confirm",
-  "Send money for lunch and call restaurant for reservation"
+  "The last Venmo payment request I sent to Cory was an accident and they approved it. Send them the money back.",
+  "I need to split the dinner bill with my roommate Alex. Send them $32.50 and text them about it.",
+  "Check my recent Venmo transactions and call if there are any suspicious payments."
 ];
 
 export default function Home() {
-  const [prompt, setPrompt] = useState("Send $50 to John via Venmo and then call him to confirm he received the payment and ask about dinner plans for Friday.");
+  const [prompt, setPrompt] = useState("The last Venmo payment request I sent to Cory was an accident and they approved it. Send them the money back.");
   const [currentTask, setCurrentTask] = useState<Task | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [progress, setProgress] = useState(0);
@@ -151,9 +151,13 @@ export default function Home() {
       case 'supervisor':
         return Crown;
       case 'phone':
+      case 'phone_agent':
         return Phone;
       case 'venmo':
+      case 'venmo_agent':
         return CreditCard;
+      case 'user':
+        return MessageCircle;
       default:
         return Bot;
     }
@@ -164,9 +168,13 @@ export default function Home() {
       case 'supervisor':
         return 'bg-blue-500';
       case 'phone':
+      case 'phone_agent':
         return 'bg-amber-500';
       case 'venmo':
+      case 'venmo_agent':
         return 'bg-violet-500';
+      case 'user':
+        return 'bg-green-500';
       default:
         return 'bg-gray-500';
     }
@@ -177,9 +185,13 @@ export default function Home() {
       case 'supervisor':
         return 'Supervisor';
       case 'phone':
+      case 'phone_agent':
         return 'Phone Agent';
       case 'venmo':
+      case 'venmo_agent':
         return 'Venmo Agent';
+      case 'user':
+        return 'User';
       default:
         return 'Agent';
     }
@@ -188,15 +200,19 @@ export default function Home() {
   const getMessageTypeClass = (messageType: string) => {
     switch (messageType) {
       case 'success':
-        return 'border-l-4 border-green-500 bg-green-50';
+        return 'border-l-4 border-green-500 bg-green-50 dark:bg-green-950';
       case 'action':
-        return 'border-l-4 border-blue-500 bg-blue-50';
+        return 'border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-950';
       case 'completion':
-        return 'border-l-4 border-green-500 bg-green-50';
+        return 'border-l-4 border-green-500 bg-green-50 dark:bg-green-950';
       case 'processing':
-        return 'border-l-4 border-yellow-500 bg-yellow-50';
+        return 'border-l-4 border-yellow-500 bg-yellow-50 dark:bg-yellow-950';
+      case 'delegation':
+        return 'border-l-4 border-purple-500 bg-purple-50 dark:bg-purple-950';
+      case 'user_input':
+        return 'border-l-4 border-gray-500 bg-gray-50 dark:bg-gray-900';
       default:
-        return 'bg-gray-50';
+        return 'bg-gray-50 dark:bg-gray-900';
     }
   };
 
@@ -268,7 +284,7 @@ export default function Home() {
                       id="prompt"
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
-                      placeholder="e.g., Send $50 to John and then call him to confirm the payment..."
+                      placeholder="e.g., The last Venmo payment request I sent to Cory was an accident and they approved it. Send them the money back."
                       className="h-32 resize-none"
                       disabled={isProcessing}
                     />
@@ -294,7 +310,7 @@ export default function Home() {
 
                   {/* Sample Prompts */}
                   <div className="border-t border-gray-200 pt-4">
-                    <h3 className="text-sm font-medium text-gray-700 mb-3">Sample Prompts</h3>
+                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Sample Prompts</h3>
                     <div className="space-y-2">
                       {samplePrompts.map((samplePrompt, index) => (
                         <button
@@ -323,10 +339,10 @@ export default function Home() {
                   <div className="flex items-center space-x-2 text-sm text-gray-500">
                     <div className={cn(
                       "w-2 h-2 rounded-full",
-                      isProcessing ? "bg-blue-500" : taskCompleted ? "bg-green-500" : "bg-gray-400"
+                      isProcessing ? "bg-blue-500 animate-pulse" : taskCompleted ? "bg-green-500" : "bg-gray-400"
                     )}></div>
                     <span>
-                      {isProcessing ? "Processing task..." : taskCompleted ? "Task completed" : "Waiting for input"}
+                      {isProcessing ? "Calling external API..." : taskCompleted ? "Task completed" : "Ready for external API call"}
                     </span>
                   </div>
                 </div>
